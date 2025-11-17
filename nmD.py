@@ -87,25 +87,27 @@ def main(args=None):
     print([axis.name for axis in grid.outputAxes])
     
     img = None
-    for i in range(len(grid.inputAxes)):
+    for i in range(max(len(grid.inputAxes), len(grid.outputAxes))):
+        plt.clf()
         x , y = [], []
         for row in table:
             x.append(row[grid.inputAxes[i].name])
             y.append(row[grid.outputAxes[i].name])
         if img is None:
             plt.plot(x, y)
-            plt.savefig("input/output.png")
+            plt.ylim(min(y), max(y))
+            plt.xlim(min(x), max(x))
+            plt.savefig("input/output.png", bbox_inches='tight', pad_inches=0)
             img = mpimg.imread("input/output.png")
-            plt.clf()
         else:
-            print("it freaking happened")
             for index, value in enumerate(x):
-                print("value:", value, "y:", y[index])
-                plt.imshow(img, extent=[value-0.5, value+0.5, y[index]-0.5, y[index]+0.5], alpha=0.5)
-            plt.savefig("input/output.png")
+                plt.ylim(min(y), max(y))
+                plt.xlim(min(x), max(x))
+                width = (max(x) - min(x))/len(x)
+                height = (max(y) - min(y))/len(y)
+                plt.imshow(img, extent=[value-width/2, value+width/2, y[index]-height/2, y[index]+height/2])
+            plt.savefig("input/output.png", bbox_inches='tight', pad_inches=0)
             img = mpimg.imread("input/output.png")
-            plt.clf()
-
 
     plt.title(f"Grid: {grid.name}")
     plt.show()
