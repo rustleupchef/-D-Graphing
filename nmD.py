@@ -24,7 +24,7 @@ class DynamicAxis:
         self.startingValue = startingValue
 
 class Grid:
-    def __init__ (self, name: str, outputAxes: dict = {}, inputAxes: dict = {}, table: list[list[float]] = []):
+    def __init__ (self, name: str, outputAxes: list = [], inputAxes: list = [], table: list[list[float]] = []):
         self.name = name
         self.outputAxes = outputAxes
         self.inputAxes = inputAxes
@@ -39,9 +39,9 @@ class Grid:
 
     def addStaticAxis(self, axis: StaticAxis) -> None:
         if axis.isInput:
-            self.inputAxes[axis.name] = axis
+            self.inputAxes.append(axis)
         else:
-            self.outputAxes[axis.name] = axis
+            self.outputAxes.append(axis)
     
     def addDynamicAxis(self, axis: DynamicAxis) -> None:
         if axis.name in self.inputAxes or axis.name in self.outputAxes:
@@ -49,11 +49,11 @@ class Grid:
         if axis.isInput:
             if self.countOf(isDynamic=True, isInput=True) >= 2:
                 raise ValueError("Only one dynamic input axis is allowed.")
-            self.inputAxes[axis.name] = axis
+            self.inputAxes.append(axis)
         else:
             if self.countOf(isDynamic=True, isInput=False) >= 2:
                 raise ValueError("Only one dynamic output axis is allowed.")
-            self.outputAxes[axis.name] = axis
+            self.outputAxes.append(axis)
     
     def setTable(self, table) -> None:
         if type(table) is str:
@@ -80,17 +80,33 @@ def main(args=None):
     
     threshold = len(table[0]) // 2
     for i in range(len(table[0])):
-        axis = StaticAxis(name=i, range=(min(row[i] for row in table), max(row[i] for row in table)), ticks=5, isInput=(i < threshold))
+        axis = StaticAxis(name=i, range=(0, 3), ticks=5, isInput=(i < threshold))
         grid.addStaticAxis(axis)
     
-    print([axis.name for axis in grid.inputAxes.values()])
-    print([axis.name for axis in grid.outputAxes.values()])
+    print([axis.name for axis in grid.inputAxes])
+    print([axis.name for axis in grid.outputAxes])
     
-    img = mpimg.imread('download.jpeg')
-    plt.imshow(img, extent=[0, 200, 0, 200], origin='lower')
-    x = [float(d) for d in range(400)]
-    y = [float(x1) * 2 for x1 in x]
-    plt.plot(x, y)
+    img = None
+    for i in range(len(grid.inputAxes)):
+        x , y = [], []
+        for row in table:
+            x.append(row[grid.inputAxes[i].name])
+            y.append(row[grid.outputAxes[i].name])
+        if img is None:
+            plt.plot(x, y)
+            plt.savefig("input/output.png")
+            img = mpimg.imread("input/output.png")
+            plt.clf()
+        else:
+            print("it freaking happened")
+            for index, value in enumerate(x):
+                print("value:", value, "y:", y[index])
+                plt.imshow(img, extent=[value-0.5, value+0.5, y[index]-0.5, y[index]+0.5], alpha=0.5)
+            plt.savefig("input/output.png")
+            img = mpimg.imread("input/output.png")
+            plt.clf()
+
+
     plt.title(f"Grid: {grid.name}")
     plt.show()
 
