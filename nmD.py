@@ -5,7 +5,7 @@ import matplotlib.image as mpimg
 import numpy as np
 
 class StaticAxis:
-    def __init__(self, name: int, range: tuple, ticks: int, isInput: bool, startingValue=None) -> None:
+    def __init__(self, name: int, range: tuple, ticks: int, isInput: bool, startingValue=None, label = None) -> None:
         self.name = name
         self.range = range
         self.ticks = ticks
@@ -16,15 +16,18 @@ class StaticAxis:
                 raise ValueError("Starting value must be within the specified range.")
         else:
             self.startingValue = abs(range[1] - range[0])//2
+        self.label = label
 
 class DynamicAxis:
-    def __init__(self, name: int, isInput: bool, startingValue=None) -> None:
+    def __init__(self, name: int, isInput: bool, startingValue=None, label = None) -> None:
         self.name = name
         self.isInput = isInput
         self.startingValue = startingValue
+        self.label = label
+
 
 class Grid:
-    def __init__ (self, name: str, outputAxes: list = [], inputAxes: list = [], table: list[list[float]] = []):
+    def __init__ (self, name: str, outputAxes: list[DynamicAxis, StaticAxis] = [], inputAxes: list[DynamicAxis, StaticAxis] = [], table: list[list[float]] = []):
         self.name = name
         self.outputAxes = outputAxes
         self.inputAxes = inputAxes
@@ -67,6 +70,41 @@ class Grid:
             self.table = table
         else:
             raise TypeError("Table must be a filename or a list of lists.")
+    
+    def graphTable(self) -> None:
+        img = None
+        for i in range(max(len(self.inputAxes), len(self.outputAxes))):
+            plt.clf()
+            x , y = [], []
+            for row in self.table:
+                x.append(1)
+                y.append(1)
+
+                if i < len(self.inputAxes):
+                    x[-1] = row[self.inputAxes[i].name]
+                if i < len(self.outputAxes):
+                    y[-1] = row[self.outputAxes[i].name]
+            if i < len(self.inputAxes):
+                plt.xlabel(self.inputAxes[i].label)
+            if i < len(self.outputAxes):
+                plt.ylabel(self.outputAxes[i].label)
+            plt.ylim(min(y), max(y))
+            plt.xlim(min(x), max(x))
+
+            if img is None:
+                plt.plot(x, y, linewidth=5)
+                plt.savefig("input/output.png", dpi=300)
+                img = mpimg.imread("input/output.png")
+            else:
+                for index, value in enumerate(x):
+                    width = (max(x) - min(x))/len(x)
+                    height = (max(y) - min(y))/len(y)
+                    plt.imshow(img, extent=[value-width/2, value+width/2, y[index]-height/2, y[index]+height/2])
+                plt.savefig("input/output.png", dpi=300)
+                img = mpimg.imread("input/output.png")
+
+        plt.title(f"Grid: {self.name}")
+        plt.show()
 
 def main(args=None):
     if len(args) != 2:
@@ -80,37 +118,13 @@ def main(args=None):
     
     threshold = len(table[0]) // 2
     for i in range(len(table[0])):
-        axis = StaticAxis(name=i, range=(0, 3), ticks=5, isInput=(i < threshold))
+        axis = StaticAxis(name=i, range=(0, 3), ticks=5, isInput=(i < threshold), label= f"x{i}" if i < threshold else f"y{i - threshold}")
         grid.addStaticAxis(axis)
     
     print([axis.name for axis in grid.inputAxes])
     print([axis.name for axis in grid.outputAxes])
-    
-    img = None
-    for i in range(max(len(grid.inputAxes), len(grid.outputAxes))):
-        plt.clf()
-        x , y = [], []
-        for row in table:
-            x.append(row[grid.inputAxes[i].name])
-            y.append(row[grid.outputAxes[i].name])
-        if img is None:
-            plt.plot(x, y)
-            plt.ylim(min(y), max(y))
-            plt.xlim(min(x), max(x))
-            plt.savefig("input/output.png", bbox_inches='tight', pad_inches=0)
-            img = mpimg.imread("input/output.png")
-        else:
-            for index, value in enumerate(x):
-                plt.ylim(min(y), max(y))
-                plt.xlim(min(x), max(x))
-                width = (max(x) - min(x))/len(x)
-                height = (max(y) - min(y))/len(y)
-                plt.imshow(img, extent=[value-width/2, value+width/2, y[index]-height/2, y[index]+height/2])
-            plt.savefig("input/output.png", bbox_inches='tight', pad_inches=0)
-            img = mpimg.imread("input/output.png")
 
-    plt.title(f"Grid: {grid.name}")
-    plt.show()
+    grid.graphTable()
 
 if __name__ == "__main__":
     main(args=sys.argv[1:])
