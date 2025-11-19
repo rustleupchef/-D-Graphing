@@ -77,28 +77,51 @@ class Grid:
             plt.clf()
             x , y = [], []
             for row in self.table:
-                x.append(1)
-                y.append(1)
-
+                x.append(0.5)
+                y.append(0.5)
                 if i < len(self.inputAxes):
                     x[-1] = row[self.inputAxes[i].name]
                 if i < len(self.outputAxes):
                     y[-1] = row[self.outputAxes[i].name]
+
+            print(f"{x=}, {y=}")
+
             if i < len(self.inputAxes):
                 plt.xlabel(self.inputAxes[i].label)
             if i < len(self.outputAxes):
                 plt.ylabel(self.outputAxes[i].label)
-            plt.ylim(min(y), max(y))
-            plt.xlim(min(x), max(x))
+
+            if min(y) != max(y):
+                plt.ylim(min(y), max(y))
+            else:
+                plt.ylim(0, max(x))
+                y = [max(x)/2 for d in y]
+                plt.yticks([])
+
+            if min(x) != max(x):
+                plt.xlim(min(x), max(x))
+            else:
+                plt.xlim(0, max(y))
+                x = [max(y)/2 for d in x]
+                plt.xticks([])
 
             if img is None:
                 plt.plot(x, y, linewidth=5)
                 plt.savefig("input/output.png", dpi=300)
                 img = mpimg.imread("input/output.png")
             else:
+                plt.plot(x, y)
                 for index, value in enumerate(x):
                     width = (max(x) - min(x))/len(x)
                     height = (max(y) - min(y))/len(y)
+
+                    print(f"{width=} {height=}")
+
+                    width = max(y) if width == 0 else width
+                    height = max(x) if height == 0 else height
+
+                    print(f"{width=} {height=}")
+
                     plt.imshow(img, extent=[value-width/2, value+width/2, y[index]-height/2, y[index]+height/2])
                 plt.savefig("input/output.png", dpi=300)
                 img = mpimg.imread("input/output.png")
