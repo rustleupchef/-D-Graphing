@@ -2,29 +2,30 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import numpy as np
+import itertools
 
 class StaticAxis:
-    def __init__(self, name: int, range: tuple, ticks: int, isInput: bool, startingValue=None, label = None) -> None:
+    def __init__(self, name: int, ticks: int, isInput: bool, startingValue=None, label = None, spread = (0, 10)) -> None:
         self.name = name
-        self.range = range
         self.ticks = ticks
         self.isInput = isInput
         self.startingValue = startingValue
         if startingValue is not None:
-            if not (range[0] <= startingValue <= range[1]):
-                raise ValueError("Starting value must be within the specified range.")
+            if not (spread[0] <= startingValue <= spread[1]):      
+                raise ValueError("Starting value must be within the specified spread.")
         else:
-            self.startingValue = abs(range[1] - range[0])//2
+            self.startingValue = abs(spread[1] - spread[0])//2
         self.label = label
+        self.spread = spread
 
 class DynamicAxis:
-    def __init__(self, name: int, isInput: bool, startingValue=None, label = None) -> None:
+    def __init__(self, name: int, isInput: bool, equation, startingValue=None, label = None, spread = (0, 10)) -> None:
         self.name = name
         self.isInput = isInput
+        self.equation = equation
         self.startingValue = startingValue
         self.label = label
-
+        self.spread = spread
 
 class Grid:
     def __init__ (self, name: str, outputAxes: list[DynamicAxis, StaticAxis] = [], inputAxes: list[DynamicAxis, StaticAxis] = [], table: list[list[float]] = []):
@@ -71,6 +72,19 @@ class Grid:
         else:
             raise TypeError("Table must be a filename or a list of lists.")
     
+    def formTable(self, size: int = 20) -> None:
+        self.table = []
+
+        length = max([x.name for x in (self.inputAxes + self.outputAxes)]) + 1
+        template = [1 for i in range(length)]
+        for i in range(size):
+            temp = template[:]
+            self.table.append(temp)
+        
+        combinations = list(itertools.combinations([x for x in range(size)], len(self.inputAxes)))
+        print(combinations)
+
+
     def graphTable(self) -> None:
         img = None
         for i in range(max(len(self.inputAxes), len(self.outputAxes))):
@@ -141,13 +155,13 @@ def main(args=None):
     
     threshold = len(table[0]) // 2
     for i in range(len(table[0])):
-        axis = StaticAxis(name=i, range=(0, 3), ticks=5, isInput=(i < threshold), label= f"x{i}" if i < threshold else f"y{i - threshold}")
+        axis = StaticAxis(name=i, ticks=5, isInput=(i < threshold), label= f"x{i}" if i < threshold else f"y{i - threshold}")
         grid.addStaticAxis(axis)
     
     print([axis.name for axis in grid.inputAxes])
     print([axis.name for axis in grid.outputAxes])
 
-    grid.graphTable()
+    grid.formTable()
 
 if __name__ == "__main__":
     main(args=sys.argv[1:])
