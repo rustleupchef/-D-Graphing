@@ -3,29 +3,36 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import itertools
+import inspect
+from typing import get_type_hints, Callable
 
 class StaticAxis:
-    def __init__(self, name: int, ticks: int, isInput: bool, startingValue=None, label = None, spread = (0, 10)) -> None:
+    def __init__(self, name: int, ticks: int, isInput: bool, label = None) -> None:
         self.name = name
         self.ticks = ticks
         self.isInput = isInput
-        self.startingValue = startingValue
-        if startingValue is not None:
-            if not (spread[0] <= startingValue <= spread[1]):      
-                raise ValueError("Starting value must be within the specified spread.")
-        else:
-            self.startingValue = abs(spread[1] - spread[0])//2
         self.label = label
-        self.spread = spread
 
 class DynamicAxis:
-    def __init__(self, name: int, isInput: bool, equation, startingValue=None, label = None, spread = (0, 10)) -> None:
+    def __init__(self, name: int, isInput: bool, equation: Callable, label = None) -> None:
         self.name = name
         self.isInput = isInput
+        if not self.validate_equation(equation):
+            raise ValueError("Equation is not valid; must have two list parameters, and must return an integer")
         self.equation = equation
-        self.startingValue = startingValue
         self.label = label
-        self.spread = spread
+    
+    def validate_equation(func: Callable) -> bool:
+        params = inspect.signature(func).parameters
+        hints = get_type_hints(func)
+        if len(params) != 2:
+            return False
+        for name in list(params.keys()):
+            if hints.get(name) is not list:
+                return False
+        if hints.get('return') is not int:
+            return False
+        return True
 
 class Grid:
     def __init__ (self, name: str, outputAxes: list[DynamicAxis, StaticAxis] = [], inputAxes: list[DynamicAxis, StaticAxis] = [], table: list[list[float]] = []):
@@ -77,12 +84,17 @@ class Grid:
 
         length = max([x.name for x in (self.inputAxes + self.outputAxes)]) + 1
         template = [1 for i in range(length)]
-        for i in range(size):
+        combinations = list(itertools.combinations([x for x in range(size + 1)], len(self.inputAxes)))
+
+        for i in range(len(combinations)):
             temp = template[:]
             self.table.append(temp)
         
-        combinations = list(itertools.combinations([x for x in range(size)], len(self.inputAxes)))
-        print(combinations)
+        for i, row in enumerate(self.table):
+            for index, value in enumerate(self.inputAxes):
+                row[value.name] = combinations[i][index]
+            
+
 
 
     def graphTable(self) -> None:
